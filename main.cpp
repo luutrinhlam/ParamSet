@@ -9,18 +9,21 @@
 #include <iomanip>
 #include "Timer.h"
 
-#define EYE_RANGE 80
-#define ANGLE_ERROR 0.01
+#define EYE_RANGE 100
+#define ANGLE_ERROR 0.00001
 
 using namespace std;
 
 bool approx(float x, float y)
 {
-    return abs(x - y) < ANGLE_ERROR;
+    return abs(x - y) <= ANGLE_ERROR;
 }
 
 int main()
 {
+	float offline_t[3];
+	float online_t[3];
+	for(int t_index = 0; t_index < 3; t_index++){
     // //////// offline phase ////////
     vector<Point2D> mesh;
     string buffer;
@@ -67,7 +70,8 @@ int main()
     {
         myMap.push_back(PS_Generator(mesh[i], mesh));
     }
-    std::cout << "Offline phase time taken: " << t.elapsed() << " seconds\n";
+	offline_t[t_index ] = t.elapsed();
+    std::cout << "[t] Offline phase time taken: " << t.elapsed() << " seconds\n";
     //////// online phase ////////
     Point2D lostPoint(998 / 2, 586 / 2);
     Point2D closestPoint;
@@ -97,6 +101,7 @@ int main()
     seeable_PS = PS_Generator(closestPoint, seeable_points);
     std::cout << "Number of seeable points: " << seeable_points.size() - 1 << endl;
 
+    t.reset();	
     for (int i = 0; i < myMap.size(); i++)
     {
         // check if seeable_PS.distances is a subset of myMap[i].distances
@@ -182,6 +187,8 @@ int main()
             } while (left_pointer != myMap[i].angle.size());
         }
     }
+	online_t[t_index ] = t.elapsed();
+    std::cout << "[t] Online phase time taken: " << t.elapsed() << " seconds\n";
 
     std::cout << "----------------------------------------------" << endl;
     std::cout << "Result:" << endl;
@@ -189,11 +196,8 @@ int main()
     {
         std::cout << result.x << " " << result.y << endl;
     }
-    cout << "seeable_PS.angle:" <<endl;
-    for (auto x : seeable_PS.angle)
-    {
-        std::cout << x << " " << endl;
-    }
-
+	}
+	cout << "+++++++++ Offline time: " << (offline_t[0] + offline_t[1] +offline_t[2])/3  <<endl;
+	cout << "+++++++++ Online time: " << (online_t[0] + online_t[1] +online_t[2])/3  <<endl;
     return 0;
 }
