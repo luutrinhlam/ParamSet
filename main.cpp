@@ -1,33 +1,30 @@
 // #include "PS_sort.cpp"
-#include "PS_relation.cpp"
+#include "PS.h"
 #include <iostream>
 #include <math.h>
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <limits>
+#include <iomanip>
+#include "Timer.h"
 
-#define EYE_RANGE 2.2
+#define EYE_RANGE 80
+#define ANGLE_ERROR 0.01
 
 using namespace std;
 
-bool approx(float x, float y){
-    return abs(x - y) < 0.0001;
+bool approx(float x, float y)
+{
+    return abs(x - y) < ANGLE_ERROR;
 }
 
 int main()
 {
-    // Point2D source(1,1);
-    // vector<Point2D> mesh;
-    // mesh.push_back(Point2D(2,2));
-    // mesh.push_back(Point2D(1,2));
-    // mesh.push_back(Point2D(2,1));
-    // mesh.push_back(Point2D(3,2));
-    // mesh.push_back(Point2D(0,-1));
-
-    // //////// online phase ////////
+    // //////// offline phase ////////
     vector<Point2D> mesh;
     string buffer;
-    ifstream HCMUTCampus("HCMUT_campus.txt");
+    ifstream HCMUTCampus("HCMUT_campus_test2.txt");
 
     // Use a while loop together with the getline() function to read the file line by line
     while (getline(HCMUTCampus, buffer))
@@ -62,20 +59,21 @@ int main()
         Point2D p(stof(x), stof(y));
         mesh.push_back(p);
     }
-    std:: cout << "Map Size: " << mesh.size() << endl;
-
+    std::cout << "Map Size: " << mesh.size() << endl;
     vector<PS> myMap;
 
+    Timer t;
     for (int i = 0; i < mesh.size(); i++)
     {
-        myMap.push_back(calculatePSrelation(mesh[i], mesh));
+        myMap.push_back(PS_Generator(mesh[i], mesh));
     }
-
-    //////// offline phase ////////
-    Point2D lostPoint(5, 3);
+    std::cout << "Offline phase time taken: " << t.elapsed() << " seconds\n";
+    //////// online phase ////////
+    Point2D lostPoint(998 / 2, 586 / 2);
     Point2D closestPoint;
     vector<Point2D> resultPoints;
-    float minDistance = 10000;
+    float minDistance = std::numeric_limits<float>::max();
+    ;
     for (auto x : mesh)
     {
         if (minDistance > sqrt(pow(lostPoint.x - x.x, 2) + pow(lostPoint.y - x.y, 2)))
@@ -84,7 +82,7 @@ int main()
             closestPoint = x;
         }
     }
-    std:: cout << "Closest point: " << closestPoint.x << " " << closestPoint.y << endl;
+    std::cout << "Closest point: " << closestPoint.x << " " << closestPoint.y << endl;
 
     vector<Point2D> seeable_points;
     for (auto x : mesh)
@@ -96,129 +94,105 @@ int main()
     }
 
     PS seeable_PS;
-    seeable_PS = calculatePSrelation(closestPoint, seeable_points);
-    std:: cout << "Number of seeable points: " << seeable_points.size() << endl;
-
-    // // print myMap
-    // for (int i = 0; i < myMap.size(); i++){
-    //     cout << "Index: " << i << endl;
-    //     cout << "Distance: " << endl;
-    //     for (auto x : myMap[i].distance){
-    //         cout << x << " ";
-    //     }
-    //     cout << endl;
-    //     cout << "Angle: " << endl;
-    //     for (auto x : myMap[i].angle){
-    //         cout << x << " ";
-    //     }
-    //     cout << endl;
-    // }
-
-    // cout <<endl;
-    // // lost point PS
-    // cout << "Lost point PS: " << endl;
-    // cout << "Distance: " << endl;
-    // for (auto x : seeable_PS.distance){
-    //     cout << x << " ";
-    // }
-    // cout << endl;
-    // cout << "Angle: " << endl;
-    // for (auto x : seeable_PS.angle){
-    //     cout << x << " ";
-    // }
-    // cout << endl;
+    seeable_PS = PS_Generator(closestPoint, seeable_points);
+    std::cout << "Number of seeable points: " << seeable_points.size() - 1 << endl;
 
     for (int i = 0; i < myMap.size(); i++)
     {
-        // check if seeable_PS is a subset of myMap[i]
-        bool isFind = true;
-        
-        for (int j = 0; j < seeable_PS.distance.size(); j++)
-        {
-            bool exist = false;
-            for (int k = 0; k < myMap[i].distance.size(); k++)
-            {
-                if (seeable_PS.distance[j] == myMap[i].distance[k])
-                {
-                    exist = true;
-                    break;
-                }
-            }
-            if (!exist)
-            {
-                isFind = false;
-                break;
-            }
-        }
-        // cout << "isFind: " << isFind << endl;
-        
+        // check if seeable_PS.distances is a subset of myMap[i].distances
+        bool isFind = isSubset(seeable_PS.distance, myMap[i].distance);
+
+        // for (int j = 0; j < seeable_PS.distance.size(); j++)
+        // {
+        //     bool exist = false;
+        //     for (int k = 0; k < myMap[i].distance.size(); k++)
+        //     {
+        //         if (seeable_PS.distance[j] == myMap[i].distance[k])
+        //         {
+        //             exist = true;
+        //             break;
+        //         }
+        //     }
+        //     if (!exist)
+        //     {
+        //         isFind = false;
+        //         break;
+        //     }
+        // }
+
         if (isFind) // seeable_PS is a subset of myMap[i]
         {
-            // cout << "Seeable_PS angle: " <<endl;
-            // for (auto abc : seeable_PS.angle){
-            //     cout << abc << " ";
-            // }
-            // cout <<endl;
-
-            // cout << "myMap[i] angle: " <<endl;
-            // for (auto abc : myMap[i].angle){
-            //     cout << abc << " ";
-            // }
-            // cout <<endl;
-
-            float alpha = myMap[i].angle[0];
+            cout << "Find a point match distance" << endl;
+            float alpha = seeable_PS.angle[0];
             int left_pointer = 0;
             int right_pointer = 0;
             float window_sum = 0;
             do
             {
-                left_pointer %= seeable_PS.angle.size();
-                right_pointer %= seeable_PS.angle.size();
-                window_sum += seeable_PS.angle[right_pointer];
-                if (window_sum > alpha)
-                {
-                    window_sum -= seeable_PS.angle[left_pointer];
-                    window_sum -= seeable_PS.angle[right_pointer];
-                    left_pointer++;
-                }
+                right_pointer %= myMap[i].angle.size();
+                window_sum += myMap[i].angle[right_pointer];
                 if (approx(window_sum, alpha))
                 {
+                    // cout << "Found a match in angle" << endl;
                     bool isMatch = true;
                     float accumulatedSum = 0;
-                    for (int l = 1; l < myMap[i].angle.size(); l++)
+
+                    int l = 1;
+                    for (int k = (right_pointer + 1) % myMap[i].angle.size();
+                         k != left_pointer;
+                         k = (k + 1) % myMap[i].angle.size())
                     {
-                        for (int k = right_pointer; k != left_pointer; k = (k + 1) % seeable_PS.angle.size())
+                        // if (l >= seeable_PS.angle.size())
+                        // {
+                        //     isMatch = false;
+                        //     break;
+                        // };
+                        accumulatedSum += myMap[i].angle[k];
+                        if (approx(accumulatedSum, seeable_PS.angle[l]))
                         {
-                            accumulatedSum += seeable_PS.angle[k];
-                            if (accumulatedSum > myMap[i].angle[l])
-                            {
-                                isMatch = false;
-                                break;
-                            }
-                            if (accumulatedSum == myMap[i].angle[l]) accumulatedSum = 0;
-                            if (!isMatch) break;
+                            accumulatedSum = 0;
+                            l++;
+                        }
+                        else if (accumulatedSum > seeable_PS.angle[l])
+                        {
+                            isMatch = false;
+                            break;
                         }
                     }
-                    if (isMatch){
-                        std:: cout << "Found i: " << i + 1 << endl;
+                    if (accumulatedSum != 0) isMatch = false;
+                    if (isMatch)
+                    {
+                        std::cout << "Found i: " << i + 1 << endl;
                         resultPoints.push_back(mesh[i]);
                         break;
                     };
-                    window_sum -= seeable_PS.angle[left_pointer];
-                    window_sum -= seeable_PS.angle[right_pointer];
+                    window_sum -= myMap[i].angle[left_pointer];
+                    // window_sum -= myMap[i].angle[right_pointer];
+                    right_pointer++;
                     left_pointer++;
                 }
-                if (window_sum < alpha)
+                else if (window_sum > alpha)
+                {
+                    window_sum -= myMap[i].angle[left_pointer];
+                    window_sum -= myMap[i].angle[right_pointer];
+                    left_pointer++;
+                }
+                else if (window_sum < alpha)
                     right_pointer++;
-            } while (left_pointer != 0);
+            } while (left_pointer != myMap[i].angle.size());
         }
     }
 
-    std:: cout << "----------------------------------------------" << endl;
-    std:: cout << "Result:" << endl;
+    std::cout << "----------------------------------------------" << endl;
+    std::cout << "Result:" << endl;
     for (auto result : resultPoints)
     {
-        std:: cout << result.x << " " << result.y << endl;
+        std::cout << result.x << " " << result.y << endl;
+    }
+    cout << "seeable_PS.angle:" <<endl;
+    for (auto x : seeable_PS.angle)
+    {
+        std::cout << x << " " << endl;
     }
 
     return 0;
