@@ -91,8 +91,15 @@ vector<Point2D> onlinePhase(vector<PS> myMap, PS seeable_PS, vector<Point2D> mes
         // check if seeable_PS.distances is a subset of myMap[i].distances
         bool isFind = isSubset(seeable_PS.distances, myMap[i].distances);
 
-        if (isFind) // seeable_PS is a subset of myMap[i]
+        if (isFind) 
         {
+            if (seeable_PS.angles.size() == 0) 
+            {
+                if (seeable_PS.distances.size() != 0) resultPoints.push_back(mesh[i]);
+                continue;
+            }
+
+            
             float alpha = seeable_PS.angles[0];
             int left_pointer = 0;
             int right_pointer = 0;
@@ -152,6 +159,10 @@ vector<Point2D> onlinePhase(vector<PS> myMap, PS seeable_PS, vector<Point2D> mes
 
 bool isSubset(vector<float> a, vector<float> b)
 {
+    if (a.size() > b.size())
+        return false;
+    if (a.size() == 0)
+        return true;
     sort(a.begin(), a.end());
     sort(b.begin(), b.end());
     int index = 0;

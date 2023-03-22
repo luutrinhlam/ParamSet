@@ -67,7 +67,7 @@ vector<Point2D> noGPSNavigation()
         std::cout << "[t] Offline phase time taken: " << t.elapsed() << " seconds\n";
 
         //////// online phase ////////
-        Point2D lostPoint(998 / 2, 586 / 2);
+        Point2D lostPoint(900 , 580);
         Point2D closestPoint;
         float minDistance = std::numeric_limits<float>::max();
         ;
@@ -79,12 +79,12 @@ vector<Point2D> noGPSNavigation()
                 closestPoint = x;
             }
         }
-        std::cout << "Closest point: " << closestPoint.x << " " << closestPoint.y << endl;
+        std::cout << "Closest point: " << "(" <<closestPoint.x << ", " << closestPoint.y << "), with distance: " << minDistance << endl;
 
         vector<Point2D> seeable_points;
         for (auto x : mesh)
         {
-            if (sqrt(pow(lostPoint.x - x.x, 2) + pow(lostPoint.y - x.y, 2)) < EYE_RANGE)
+            if (sqrt(pow(closestPoint.x - x.x, 2) + pow(closestPoint.y - x.y, 2)) < EYE_RANGE)
             {
                 seeable_points.push_back(x);
             }
