@@ -1,11 +1,14 @@
-#ifndef SOME_HEADER_FILE_H
-#define SOME_HEADER_FILE_H
+#ifndef PS_H
+#define PS_H
 
 #include <vector>
 #include <math.h>
 #include <iostream>
-#include <algorithm> 
+#include <algorithm>
 
+#define ANGLE_ERROR 0.00001
+
+using namespace std;
 
 class Point2D {
 public:
@@ -16,8 +19,8 @@ public:
 
 struct PS
 {
-    std::vector<float> distance;
-    std::vector<float> angle;
+    vector<float> distances;
+    vector<float> angles;
 };
 
 struct PS_help_node
@@ -27,7 +30,12 @@ struct PS_help_node
     float theta; // angle created by Oy and the line from source to point
 };
 
-PS PS_Generator(Point2D source, std::vector<Point2D> mesh);
-bool isSubset(std::vector<float> a, std::vector<float> b);
+bool approx(float x, float y);
+
+
+PS PS_Generator(Point2D source, vector<Point2D> mesh);
+bool isSubset(vector<float> a, vector<float> b);
+vector<PS> offlinePhase (vector<Point2D> mesh);
+vector<Point2D> onlinePhase (vector<PS> myMap, PS seeable_PS, vector<Point2D> mesh);
 
 #endif

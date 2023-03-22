@@ -2,6 +2,16 @@
 
 using namespace std;
 
+vector<PS> offlinePhase(vector<Point2D> mesh)
+{
+    vector<PS> result;
+    for (int i = 0; i < mesh.size(); i++)
+    {
+        result.push_back(PS_Generator(mesh[i], mesh));
+    }
+    return result;
+}
+
 PS PS_Generator(Point2D source, vector<Point2D> mesh)
 {
     static const double TWOPI = 6.2831853071795865;
@@ -48,33 +58,107 @@ PS PS_Generator(Point2D source, vector<Point2D> mesh)
             }
         }
 
-        if(!haveInserted)
+        if (!haveInserted)
             PS_help_list.push_back(help_node);
     }
 
     ///////////////////////////// calculate PS /////////////////////////////
     for (int i = 0; i < PS_help_list.size(); i++)
     {
-        PS.distance.push_back(PS_help_list[i].distance);
+        PS.distances.push_back(PS_help_list[i].distance);
         if (i == PS_help_list.size() - 1)
         {
-            PS.angle.push_back( TWOPI - (PS_help_list[i].theta - PS_help_list[0].theta));
+            PS.angles.push_back(TWOPI - (PS_help_list[i].theta - PS_help_list[0].theta));
         }
         else
         {
-            PS.angle.push_back(PS_help_list[i + 1].theta - PS_help_list[i].theta);
+            PS.angles.push_back(PS_help_list[i + 1].theta - PS_help_list[i].theta);
         }
     }
     return PS;
 };
 
-bool isSubset(vector <float> a, vector <float> b)
+bool approx(float x, float y)
+{
+    return abs(x - y) <= ANGLE_ERROR;
+}
+
+vector<Point2D> onlinePhase(vector<PS> myMap, PS seeable_PS, vector<Point2D> mesh)
+{
+    vector<Point2D> resultPoints;
+    for (int i = 0; i < myMap.size(); i++)
+    {
+        // check if seeable_PS.distances is a subset of myMap[i].distances
+        bool isFind = isSubset(seeable_PS.distances, myMap[i].distances);
+
+        if (isFind) // seeable_PS is a subset of myMap[i]
+        {
+            float alpha = seeable_PS.angles[0];
+            int left_pointer = 0;
+            int right_pointer = 0;
+            float window_sum = 0;
+            do
+            {
+                right_pointer %= myMap[i].angles.size();
+                window_sum += myMap[i].angles[right_pointer];
+                if (approx(window_sum, alpha))
+                {
+                    // cout << "Found a match in angle" << endl;
+                    bool isMatch = true;
+                    float accumulatedSum = 0;
+
+                    int l = 1;
+                    for (int k = (right_pointer + 1) % myMap[i].angles.size();
+                         k != left_pointer;
+                         k = (k + 1) % myMap[i].angles.size())
+                    {
+                        accumulatedSum += myMap[i].angles[k];
+                        if (approx(accumulatedSum, seeable_PS.angles[l]))
+                        {
+                            accumulatedSum = 0;
+                            l++;
+                        }
+                        else if (accumulatedSum > seeable_PS.angles[l])
+                        {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+                    if (accumulatedSum != 0)
+                        isMatch = false;
+                    if (isMatch)
+                    {
+                        resultPoints.push_back(mesh[i]);
+                        break;
+                    };
+                    window_sum -= myMap[i].angles[left_pointer];
+                    // window_sum -= myMap[i].angle[right_pointer];
+                    right_pointer++;
+                    left_pointer++;
+                }
+                else if (window_sum > alpha)
+                {
+                    window_sum -= myMap[i].angles[left_pointer];
+                    window_sum -= myMap[i].angles[right_pointer];
+                    left_pointer++;
+                }
+                else if (window_sum < alpha)
+                    right_pointer++;
+            } while (left_pointer != myMap[i].angles.size());
+        }
+    }
+    return resultPoints;
+}
+
+bool isSubset(vector<float> a, vector<float> b)
 {
     sort(a.begin(), a.end());
     sort(b.begin(), b.end());
     int index = 0;
-    for (auto Bnode : b){
-        if (a[index] == Bnode) index++;
+    for (auto Bnode : b)
+    {
+        if (a[index] == Bnode)
+            index++;
     }
     return (index == a.size());
 }
